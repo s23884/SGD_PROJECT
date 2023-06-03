@@ -3,7 +3,11 @@
 #include <SDL_ttf.h>
 #include <iostream>
 #include <string>
+#include <cmath>
+#include <stdlib.h>
+#include <time.h>
 
+#define RANDOM_BONUS 5
 #define WIDTH 620
 #define HEIGHT 720
 #define FONT_SIZE 32
@@ -22,7 +26,7 @@ SDL_Color color, bc;
 bool running;
 int frameCount, timerFPS, lastFrame, fps;
 
-SDL_Rect paddle, ball, lives, brick;
+SDL_Rect paddle, ball, lives, brick, money;
 float velY, velX;
 int livesCount;
 bool bricks[ROW*COL];
@@ -67,28 +71,43 @@ void update() {
         velY=-BALL_SPEED*cos(bounce);
         velX=BALL_SPEED*-sin(bounce);
     }
-    if(ball.y<=0) {velY=-velY;}//serve();}
-    if(ball.y+SIZE>=HEIGHT) {velY=-velY;livesCount--;}//serve();}
+    if(ball.y<=0) {velY=-velY;}
+    if(ball.y+SIZE>=HEIGHT) {velY=-velY;livesCount--;}
     if(ball.x<=0 || ball.x+SIZE>=WIDTH) velX=-velX;
     ball.y+=velY;
     ball.x+=velX;
     if(paddle.x<0)paddle.x=0;
     if(paddle.x+paddle.w>WIDTH)paddle.x=WIDTH-paddle.w;
     if(livesCount<=0)resetBricks();
-
+    money.y =money.y + 10;
     bool reset=1;
+    if( money.y >= paddle.y-20 && money.y <=paddle.y+paddle.h && money.x>=paddle.x  && paddle.x+paddle.w>=money.x){
+        money.y = 750;
+        livesCount = livesCount+1;
+    }
     for(int i=0; i<COL*ROW; i++) {
         setBrick(i);
         if(SDL_HasIntersection(&ball, &brick) && bricks[i]) {
             bricks[i]=0;
-            //velX=-velX;
-            //velY=-velY;
             if(ball.x >= brick.x) {velX=velX * -1;ball.x=ball.x - 20;}
             if(ball.x <= brick.x) {velX=velX * -1;ball.x=ball.x + 20;}
             if(ball.y <= brick.y) {velY=velY * -1;ball.y=ball.y - 20;}
             if(ball.y >= brick.y) {velY=velY * -1;ball.y=ball.y + 20;}
+            if(money.y>= 730 && rand() % RANDOM_BONUS == 1 ){
+                money.h = 20;
+                money.w = 20;
+                money.x = (rand() % 580)+ 20; // albo ball.x;
+                money.y = ball.y;
+            }
+
         }
-        if(bricks[i])reset=0;
+
+
+
+        if(bricks[i]){
+            reset=0;
+
+        }
     }
     if(reset)resetBricks();
 
@@ -107,15 +126,11 @@ void render() {
     SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 255);
     SDL_RenderClear(renderer);
 
-//    frameCount++;
-//    timerFPS = SDL_GetTicks()-lastFrame;
-//    if(timerFPS<(1000/60)) {
-//        SDL_Delay((1000/60)-timerFPS);
-//    }
-
     SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, 255);
     SDL_RenderFillRect(renderer, &paddle);
     SDL_RenderFillRect(renderer, &ball);
+    SDL_SetRenderDrawColor( renderer,0 , 255, 255, 255 ); //change color bonus
+    SDL_RenderFillRect(renderer, &money);
     write(std::to_string(livesCount), WIDTH/2+FONT_SIZE/2, FONT_SIZE*1.5);
 
     for(int i=0; i<COL*ROW; i++) {
@@ -138,10 +153,13 @@ int main() {
     font = TTF_OpenFont("font.ttf", FONT_SIZE);
     running=1;
     static int lastTime = 0;
+    money.y = 750;
+    srand (time(NULL));
+
 
     color.r=color.g=color.b=255;
     bc.r=255;bc.g=bc.b=0;
-    paddle.h=22; paddle.w=HEIGHT/4;
+    paddle.w=HEIGHT/4;
     paddle.h=12;
     ball.w=ball.h=SIZE;
     paddle.y=HEIGHT-paddle.h-32;
@@ -154,12 +172,6 @@ int main() {
     int frame_dropped = 0;//
     const int TICKS = 16;//
     while(running) {
-//        lastFrame=SDL_GetTicks();
-//        if(lastFrame>=(lastTime+1000)) {
-//            lastTime=lastFrame;
-//            fps=frameCount;
-//            frameCount=0;
-//        }
 
         if (!frame_dropped) {//
             update();
@@ -184,3 +196,4 @@ int main() {
 
     return 0;
 }
+
